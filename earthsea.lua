@@ -17,9 +17,11 @@ local polysub = include 'we/lib/polysub'
 
 local g = grid.connect()
 
-local mode_transpose = 0
+local mode_transpose_1 = 0
+local mode_transpose_2 = 0
 local root = { x=5, y=5 }
-local trans = { x=5, y=5 }
+local trans_1 = { x=5, y=5 }
+local trans_2 = { x=5, y=5 }
 local lit = {}
 
 local screen_framerate = 15
@@ -52,8 +54,11 @@ function init()
   m = midi.connect()
   m.event = midi_event
 
-  pat = pattern_time.new()
-  pat.process = grid_note_trans
+  pat1 = pattern_time.new()
+  pat1.process = grid_note_trans_1
+
+  pat2 = pattern_time.new()
+  pat2.process = grid_note_trans_2
 
   params:add_option("enc2","enc2", {"shape","timbre","noise","cut"})
   params:add_option("enc3","enc3", {"shape","timbre","noise","cut"}, 2)
@@ -92,51 +97,123 @@ end
 function g.key(x, y, z)
   if x == 1 then
     if z == 1 then
-      if y == 1 and pat.rec == 0 then
-        mode_transpose = 0
-        trans.x = 5
-        trans.y = 5
-        pat:stop()
+      if y == 1 and pat1.rec == 0 then
+        mode_transpose_1 = 0
+        trans_1.x = 5
+        trans_1.y = 5
+        pat1:stop()
         engine.stopAll()
         stop_all_screen_notes()
-        pat:clear()
-        pat:rec_start()
-      elseif y == 1 and pat.rec == 1 then
-        pat:rec_stop()
-        if pat.count > 0 then
-          root.x = pat.event[1].x
-          root.y = pat.event[1].y
-          trans.x = root.x
-          trans.y = root.y
-          pat:start()
+        pat1:clear()
+        pat1:rec_start()
+      elseif y == 1 and pat1.rec == 1 then
+        pat1:rec_stop()
+        if pat1.count > 0 then
+          root.x = pat1.event[1].x
+          root.y = pat1.event[1].y
+          trans_1.x = root.x
+          trans_1.y = root.y
+          pat1:start()
         end
-      elseif y == 2 and pat.play == 0 and pat.count > 0 then
-        if pat.rec == 1 then
-          pat:rec_stop()
+      elseif y == 2 and pat1.play == 0 and pat1.count > 0 then
+        if pat1.rec == 1 then
+          pat1:rec_stop()
         end
-        pat:start()
-      elseif y == 2 and pat.play == 1 then
-        pat:stop()
+        pat1:start()
+      elseif y == 2 and pat1.play == 1 then
+        pat1:stop()
         engine.stopAll()
         stop_all_screen_notes()
         nvoices = 0
         lit = {}
+      if y == 1 and pat1.rec == 0 then
+        mode_transpose_1 = 0
+        trans_1.x = 5
+        trans_1.y = 5
+        pat1:stop()
+        engine.stopAll()
+        stop_all_screen_notes()
+        pat1:clear()
+        pat1:rec_start()
+      elseif y == 1 and pat1.rec == 1 then
+        pat1:rec_stop()
+        if pat1.count > 0 then
+          root.x = pat1.event[1].x
+          root.y = pat1.event[1].y
+          trans_1.x = root.x
+          trans_1.y = root.y
+          pat1:start()
+        end
+      elseif y == 2 and pat1.play == 0 and pat1.count > 0 then
+        if pat1.rec == 1 then
+          pat1:rec_stop()
+        end
+        pat1:start()
+      elseif y == 2 and pat1.play == 1 then
+        pat1:stop()
+        engine.stopAll()
+        stop_all_screen_notes()
+        nvoices = 0
+        lit = {}
+      elseif y == 3 and pat2.rec == 0 then
+        mode_transpose_2 = 0
+        trans_2.x = 5
+        trans_2.y = 5
+        pat2:stop()
+        engine.stopAll()
+        stop_all_screen_notes()
+        pat2:clear()
+        pat2:rec_start()
+      elseif y == 3 and pat2.rec == 1 then
+        pat2:rec_stop()
+        if pat2.count > 0 then
+          root.x = pat2.event[1].x
+          root.y = pat2.event[1].y
+          trans_2.x = root.x
+          trans_2.y = root.y
+          pat2:start()
+        end
+      elseif y == 4 and pat2.play == 0 and pat2.count > 0 then
+        if pat2.rec == 1 then
+          pat2:rec_stop()
+        end
+        pat2:start()
+      elseif y == 4 and pat2.play == 1 then
+        pat2:stop()
+        engine.stopAll()
+        stop_all_screen_notes()
+        nvoices = 0
+        lit = {}
+      elseif y == 7 then
+        mode_transpose_1 = 1 - mode_transpose_1
       elseif y == 8 then
-        mode_transpose = 1 - mode_transpose
+        mode_transpose_2 = 1 - mode_transpose_2
       end
     end
   else
-    if mode_transpose == 0 then
+    if mode_transpose_1 == 0 then
       local e = {}
       e.id = x*8 + y
       e.x = x
       e.y = y
       e.state = z
-      pat:watch(e)
+      pat1:watch(e)
       grid_note(e)
     else
-      trans.x = x
-      trans.y = y
+      trans_1.x = x
+      trans_1.y = y
+    end
+    if mode_transpose_2 == 0 then
+      local e = {}
+      e.id = x*8 + y
+      e.x = x
+      e.y = y
+      e.state = z
+      pat2:watch(e)
+      grid_note(e)
+    else
+      trans_2.x = x
+      trans_2.y = y
     end
   end
   gridredraw()
@@ -167,8 +244,8 @@ function grid_note(e)
   gridredraw()
 end
 
-function grid_note_trans(e)
-  local note = ((7-e.y+(root.y-trans.y))*5) + e.x + (trans.x-root.x)
+function grid_note_trans_1(e)
+  local note = ((7-e.y+(root.y-trans_1.y))*5) + e.x + (trans_1.x-root.x)
   if e.state > 0 then
     if nvoices < MAX_NUM_VOICES then
       --engine.start(id, getHz(x, y-1))
@@ -176,8 +253,30 @@ function grid_note_trans(e)
       engine.start(e.id, getHzET(note))
       start_screen_note(note)
       lit[e.id] = {}
-      lit[e.id].x = e.x + trans.x - root.x
-      lit[e.id].y = e.y + trans.y - root.y
+      lit[e.id].x = e.x + trans_1.x - root.x
+      lit[e.id].y = e.y + trans_1.y - root.y
+      nvoices = nvoices + 1
+    end
+  else
+    engine.stop(e.id)
+    stop_screen_note(note)
+    lit[e.id] = nil
+    nvoices = nvoices - 1
+  end
+  gridredraw()
+end
+
+function grid_note_trans_2(e)
+  local note = ((7-e.y+(root.y-trans_2.y))*5) + e.x + (trans_2.x-root.x)
+  if e.state > 0 then
+    if nvoices < MAX_NUM_VOICES then
+      --engine.start(id, getHz(x, y-1))
+      --print("grid > "..id.." "..note)
+      engine.start(e.id, getHzET(note))
+      start_screen_note(note)
+      lit[e.id] = {}
+      lit[e.id].x = e.x + trans_2.x - root.x
+      lit[e.id].y = e.y + trans_2.y - root.y
       nvoices = nvoices + 1
     end
   else
@@ -191,11 +290,15 @@ end
 
 function gridredraw()
   g:all(0)
-  g:led(1,1,2 + pat.rec * 10)
-  g:led(1,2,2 + pat.play * 10)
+  g:led(1,1,2 + pat1.rec * 10)
+  g:led(1,2,2 + pat1.play * 10)
+  g:led(1,3,2 + pat2.rec * 10)
+  g:led(1,4,2 + pat2.play * 10)
   g:led(1,8,2 + mode_transpose * 10)
 
-  if mode_transpose == 1 then g:led(trans.x, trans.y, 4) end
+  if mode_transpose_1 == 1 then g:led(trans.x, trans.y, 4) end
+  if mode_transpose_2 == 1 then g:led(trans.x, trans.y, 4) end
+
   for i,e in pairs(lit) do
     g:led(e.x, e.y,15)
   end
@@ -366,6 +469,8 @@ end
 
 function cleanup()
   stop_all_screen_notes()
-  pat:stop()
-  pat = nil
+  pat1:stop()
+  pat1 = nil
+  pat2:stop()
+  pat2 = nil
 end
