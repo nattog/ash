@@ -10,18 +10,21 @@
 -- 1 2 play toggle
 -- 1 8 transpose mode
 
-local tab = require 'tabutil'
-local pattern_time = require 'pattern_time'
+local tab = require "tabutil"
+local pattern_time = require "pattern_time"
 
-local polysub = include 'we/lib/polysub'
+local polysub = include "we/lib/polysub"
 
 local g = grid.connect()
 
 local mode_transpose_1 = 0
 local mode_transpose_2 = 0
-local root = { x=5, y=5 }
-local trans_1 = { x=5, y=5 }
-local trans_2 = { x=5, y=5 }
+local root = {
+  a = {x = 5, y = 5},
+  b = {x = 5, y = 5}
+}
+local trans_1 = {x = 5, y = 5}
+local trans_2 = {x = 5, y = 5}
 local lit = {}
 
 local screen_framerate = 15
@@ -34,18 +37,18 @@ local screen_notes = {}
 
 local MAX_NUM_VOICES = 16
 
-engine.name = 'PolySub'
+engine.name = "PolySub"
 
 -- pythagorean minor/major, kinda
-local ratios = { 1, 9/8, 6/5, 5/4, 4/3, 3/2, 27/16, 16/9 }
+local ratios = {1, 9 / 8, 6 / 5, 5 / 4, 4 / 3, 3 / 2, 27 / 16, 16 / 9}
 local base = 27.5 -- low A
 
-local function getHz(deg,oct)
-  return base * ratios[deg] * (2^oct)
+local function getHz(deg, oct)
+  return base * ratios[deg] * (2 ^ oct)
 end
 
 local function getHzET(note)
-  return 55*2^(note/12)
+  return 55 * 2 ^ (note / 12)
 end
 -- current count of active voices
 local nvoices = 0
@@ -60,20 +63,21 @@ function init()
   pat2 = pattern_time.new()
   pat2.process = grid_note_trans_2
 
-  params:add_option("enc2","enc2", {"shape","timbre","noise","cut"})
-  params:add_option("enc3","enc3", {"shape","timbre","noise","cut"}, 2)
+  params:add_option("enc2", "enc2", {"shape", "timbre", "noise", "cut"})
+  params:add_option("enc3", "enc3", {"shape", "timbre", "noise", "cut"}, 2)
 
   params:add_separator()
 
   polysub:params()
-
 
   engine.stopAll()
   stop_all_screen_notes()
 
   params:bang()
 
-  if g then gridredraw() end
+  if g then
+    gridredraw()
+  end
 
   screen_refresh_metro = metro.init()
   screen_refresh_metro.event = function(stage)
@@ -89,9 +93,7 @@ function init()
     stop_screen_note(-startup_ani_count)
     startup_ani_count = startup_ani_count + 1
   end
-  startup_ani_metro:start( 0.1, 3 )
-  
-
+  startup_ani_metro:start(0.1, 3)
 end
 
 function g.key(x, y, z)
@@ -109,39 +111,10 @@ function g.key(x, y, z)
       elseif y == 1 and pat1.rec == 1 then
         pat1:rec_stop()
         if pat1.count > 0 then
-          root.x = pat1.event[1].x
-          root.y = pat1.event[1].y
-          trans_1.x = root.x
-          trans_1.y = root.y
-          pat1:start()
-        end
-      elseif y == 2 and pat1.play == 0 and pat1.count > 0 then
-        if pat1.rec == 1 then
-          pat1:rec_stop()
-        end
-        pat1:start()
-      elseif y == 2 and pat1.play == 1 then
-        pat1:stop()
-        engine.stopAll()
-        stop_all_screen_notes()
-        nvoices = 0
-        lit = {}
-      if y == 1 and pat1.rec == 0 then
-        mode_transpose_1 = 0
-        trans_1.x = 5
-        trans_1.y = 5
-        pat1:stop()
-        engine.stopAll()
-        stop_all_screen_notes()
-        pat1:clear()
-        pat1:rec_start()
-      elseif y == 1 and pat1.rec == 1 then
-        pat1:rec_stop()
-        if pat1.count > 0 then
-          root.x = pat1.event[1].x
-          root.y = pat1.event[1].y
-          trans_1.x = root.x
-          trans_1.y = root.y
+          root.a.x = pat1.event[1].x
+          root.a.y = pat1.event[1].y
+          trans_1.x = root.a.x
+          trans_1.y = root.a.y
           pat1:start()
         end
       elseif y == 2 and pat1.play == 0 and pat1.count > 0 then
@@ -167,10 +140,10 @@ function g.key(x, y, z)
       elseif y == 3 and pat2.rec == 1 then
         pat2:rec_stop()
         if pat2.count > 0 then
-          root.x = pat2.event[1].x
-          root.y = pat2.event[1].y
-          trans_2.x = root.x
-          trans_2.y = root.y
+          root.b.x = pat2.event[1].x
+          root.b.y = pat2.event[1].y
+          trans_2.x = root.b.x
+          trans_2.y = root.b.y
           pat2:start()
         end
       elseif y == 4 and pat2.play == 0 and pat2.count > 0 then
@@ -193,7 +166,7 @@ function g.key(x, y, z)
   else
     if mode_transpose_1 == 0 then
       local e = {}
-      e.id = x*8 + y
+      e.id = x * 8 + y
       e.x = x
       e.y = y
       e.state = z
@@ -205,7 +178,7 @@ function g.key(x, y, z)
     end
     if mode_transpose_2 == 0 then
       local e = {}
-      e.id = x*8 + y
+      e.id = x * 8 + y
       e.x = x
       e.y = y
       e.state = z
@@ -219,9 +192,8 @@ function g.key(x, y, z)
   gridredraw()
 end
 
-
 function grid_note(e)
-  local note = ((7-e.y)*5) + e.x
+  local note = ((7 - e.y) * 5) + e.x
   if e.state > 0 then
     if nvoices < MAX_NUM_VOICES then
       --engine.start(id, getHz(x, y-1))
@@ -245,7 +217,7 @@ function grid_note(e)
 end
 
 function grid_note_trans_1(e)
-  local note = ((7-e.y+(root.y-trans_1.y))*5) + e.x + (trans_1.x-root.x)
+  local note = ((7 - e.y + (root.a.y - trans_1.y)) * 5) + e.x + (trans_1.x - root.a.x)
   if e.state > 0 then
     if nvoices < MAX_NUM_VOICES then
       --engine.start(id, getHz(x, y-1))
@@ -253,8 +225,8 @@ function grid_note_trans_1(e)
       engine.start(e.id, getHzET(note))
       start_screen_note(note)
       lit[e.id] = {}
-      lit[e.id].x = e.x + trans_1.x - root.x
-      lit[e.id].y = e.y + trans_1.y - root.y
+      lit[e.id].x = e.x + trans_1.x - root.a.x
+      lit[e.id].y = e.y + trans_1.y - root.a.y
       nvoices = nvoices + 1
     end
   else
@@ -267,7 +239,7 @@ function grid_note_trans_1(e)
 end
 
 function grid_note_trans_2(e)
-  local note = ((7-e.y+(root.y-trans_2.y))*5) + e.x + (trans_2.x-root.x)
+  local note = ((7 - e.y + (root.b.y - trans_2.y)) * 5) + e.x + (trans_2.x - root.b.x)
   if e.state > 0 then
     if nvoices < MAX_NUM_VOICES then
       --engine.start(id, getHz(x, y-1))
@@ -275,8 +247,8 @@ function grid_note_trans_2(e)
       engine.start(e.id, getHzET(note))
       start_screen_note(note)
       lit[e.id] = {}
-      lit[e.id].x = e.x + trans_2.x - root.x
-      lit[e.id].y = e.y + trans_2.y - root.y
+      lit[e.id].x = e.x + trans_2.x - root.b.x
+      lit[e.id].y = e.y + trans_2.y - root.b.y
       nvoices = nvoices + 1
     end
   else
@@ -290,35 +262,38 @@ end
 
 function gridredraw()
   g:all(0)
-  g:led(1,1,2 + pat1.rec * 10)
-  g:led(1,2,2 + pat1.play * 10)
-  g:led(1,3,2 + pat2.rec * 10)
-  g:led(1,4,2 + pat2.play * 10)
-  g:led(1,8,2 + mode_transpose * 10)
+  g:led(1, 1, 2 + pat1.rec * 10)
+  g:led(1, 2, 2 + pat1.play * 10)
+  g:led(1, 3, 2 + pat2.rec * 10)
+  g:led(1, 4, 2 + pat2.play * 10)
+  g:led(1, 7, 2 + mode_transpose_1 * 10)
+  g:led(1, 8, 2 + mode_transpose_1 * 10)
 
-  if mode_transpose_1 == 1 then g:led(trans.x, trans.y, 4) end
-  if mode_transpose_2 == 1 then g:led(trans.x, trans.y, 4) end
+  if mode_transpose_1 == 1 then
+    g:led(trans_1.x, trans_1.y, 4)
+  end
+  if mode_transpose_2 == 1 then
+    g:led(trans_2.x, trans_2.y, 4)
+  end
 
-  for i,e in pairs(lit) do
-    g:led(e.x, e.y,15)
+  for i, e in pairs(lit) do
+    g:led(e.x, e.y, 15)
   end
 
   g:refresh()
 end
 
-
-
-function enc(n,delta)
+function enc(n, delta)
   if n == 1 then
     mix:delta("output", delta)
   elseif n == 2 then
-    params:delta(params:string("enc2"),delta*4)
+    params:delta(params:string("enc2"), delta * 4)
   elseif n == 3 then
-    params:delta(params:string("enc3"),delta*4)
+    params:delta(params:string("enc3"), delta * 4)
   end
 end
 
-function key(n,z)
+function key(n, z)
 end
 
 function start_screen_note(note)
@@ -332,18 +307,27 @@ function start_screen_note(note)
       break
     end
     count = count + 1
-    if count > 8 then return end
+    if count > 8 then
+      return
+    end
   end
 
   if screen_note then
     screen_note.active = true
   else
-    screen_note = {note = note, active = true, repeat_timer = 0, x = math.random(128), y = math.random(64), init_radius = math.random(6,18), ripples = {} }
+    screen_note = {
+      note = note,
+      active = true,
+      repeat_timer = 0,
+      x = math.random(128),
+      y = math.random(64),
+      init_radius = math.random(6, 18),
+      ripples = {}
+    }
     table.insert(screen_notes, screen_note)
   end
 
   add_ripple(screen_note)
-
 end
 
 function stop_screen_note(note)
@@ -370,7 +354,6 @@ end
 
 function update()
   for n_key, n_val in pairs(screen_notes) do
-
     if n_val.active then
       n_val.repeat_timer = n_val.repeat_timer + ripple_repeat_rate
       if n_val.repeat_timer >= 1 then
@@ -409,7 +392,7 @@ function redraw()
         screen.move(n_val.x + r_val.radius, n_val.y)
         first_ripple = false
       end
-      screen.level(math.max(1,math.floor(r_val.life * 15 + 0.5)))
+      screen.level(math.max(1, math.floor(r_val.life * 15 + 0.5)))
       screen.circle(n_val.x, n_val.y, r_val.radius)
       screen.stroke()
     end
@@ -433,20 +416,20 @@ function note_off(note, vel)
   nvoices = nvoices - 1
 end
 
-
 function midi_event(data)
-  if #data == 0 then return end
+  if #data == 0 then
+    return
+  end
   local msg = midi.to_msg(data)
 
   -- Note off
   if msg.type == "note_off" then
-    note_off(msg.note)
-
     -- Note on
+    note_off(msg.note)
   elseif msg.type == "note_on" then
     note_on(msg.note, msg.vel / 127)
 
---[[
+  --[[
     -- Key pressure
   elseif msg.type == "key_pressure" then
     set_key_pressure(msg.note, msg.val / 127)
@@ -461,11 +444,10 @@ function midi_event(data)
     local bend_range = params:get("bend_range")
     set_pitch_bend(bend_st * bend_range)
 
-  ]]--
+  ]]
+   --
   end
-
 end
-
 
 function cleanup()
   stop_all_screen_notes()
