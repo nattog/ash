@@ -17,14 +17,12 @@ local polysub = include "we/lib/polysub"
 
 local g = grid.connect()
 
-local mode_transpose_1 = 0
-local mode_transpose_2 = 0
+local mode_transpose = {0, 0}
 local root = {
   a = {x = 5, y = 5},
   b = {x = 5, y = 5}
 }
-local trans_1 = {x = 5, y = 5}
-local trans_2 = {x = 5, y = 5}
+local trans = {a = {x = 5, y = 5}, b = {x = 5, y = 5}}
 local lit = {}
 
 local screen_framerate = 15
@@ -100,9 +98,9 @@ function g.key(x, y, z)
   if x == 1 then
     if z == 1 then
       if y == 1 and pat1.rec == 0 then
-        mode_transpose_1 = 0
-        trans_1.x = 5
-        trans_1.y = 5
+        mode_transpose[1] = 0
+        trans.a.x = 5
+        trans.a.y = 5
         pat1:stop()
         engine.stopAll()
         stop_all_screen_notes()
@@ -113,8 +111,8 @@ function g.key(x, y, z)
         if pat1.count > 0 then
           root.a.x = pat1.event[1].x
           root.a.y = pat1.event[1].y
-          trans_1.x = root.a.x
-          trans_1.y = root.a.y
+          trans.a.x = root.a.x
+          trans.a.y = root.a.y
           pat1:start()
         end
       elseif y == 2 and pat1.play == 0 and pat1.count > 0 then
@@ -129,9 +127,9 @@ function g.key(x, y, z)
         nvoices = 0
         lit = {}
       elseif y == 3 and pat2.rec == 0 then
-        mode_transpose_2 = 0
-        trans_2.x = 5
-        trans_2.y = 5
+        mode_transpose[2] = 0
+        trans.b.x = 5
+        trans.b.y = 5
         pat2:stop()
         engine.stopAll()
         stop_all_screen_notes()
@@ -142,8 +140,8 @@ function g.key(x, y, z)
         if pat2.count > 0 then
           root.b.x = pat2.event[1].x
           root.b.y = pat2.event[1].y
-          trans_2.x = root.b.x
-          trans_2.y = root.b.y
+          trans.b.x = root.b.x
+          trans.b.y = root.b.y
           pat2:start()
         end
       elseif y == 4 and pat2.play == 0 and pat2.count > 0 then
@@ -158,13 +156,13 @@ function g.key(x, y, z)
         nvoices = 0
         lit = {}
       elseif y == 7 then
-        mode_transpose_1 = 1 - mode_transpose_1
+        mode_transpose[1] = 1 - mode_transpose[1]
       elseif y == 8 then
-        mode_transpose_2 = 1 - mode_transpose_2
+        mode_transpose[2] = 1 - mode_transpose[2]
       end
     end
   else
-    if mode_transpose_1 == 0 then
+    if mode_transpose[1] == 0 then
       local e = {}
       e.id = x * 8 + y
       e.x = x
@@ -173,10 +171,10 @@ function g.key(x, y, z)
       pat1:watch(e)
       grid_note(e)
     else
-      trans_1.x = x
-      trans_1.y = y
+      trans.a.x = x
+      trans.a.y = y
     end
-    if mode_transpose_2 == 0 then
+    if mode_transpose[2] == 0 then
       local e = {}
       e.id = x * 8 + y
       e.x = x
@@ -185,8 +183,8 @@ function g.key(x, y, z)
       pat2:watch(e)
       grid_note(e)
     else
-      trans_2.x = x
-      trans_2.y = y
+      trans.b.x = x
+      trans.b.y = y
     end
   end
   gridredraw()
@@ -217,7 +215,7 @@ function grid_note(e)
 end
 
 function grid_note_trans_1(e)
-  local note = ((7 - e.y + (root.a.y - trans_1.y)) * 5) + e.x + (trans_1.x - root.a.x)
+  local note = ((7 - e.y + (root.a.y - trans.a.y)) * 5) + e.x + (trans.a.x - root.a.x)
   if e.state > 0 then
     if nvoices < MAX_NUM_VOICES then
       --engine.start(id, getHz(x, y-1))
@@ -225,8 +223,8 @@ function grid_note_trans_1(e)
       engine.start(e.id, getHzET(note))
       start_screen_note(note)
       lit[e.id] = {}
-      lit[e.id].x = e.x + trans_1.x - root.a.x
-      lit[e.id].y = e.y + trans_1.y - root.a.y
+      lit[e.id].x = e.x + trans.a.x - root.a.x
+      lit[e.id].y = e.y + trans.a.y - root.a.y
       nvoices = nvoices + 1
     end
   else
@@ -239,7 +237,7 @@ function grid_note_trans_1(e)
 end
 
 function grid_note_trans_2(e)
-  local note = ((7 - e.y + (root.b.y - trans_2.y)) * 5) + e.x + (trans_2.x - root.b.x)
+  local note = ((7 - e.y + (root.b.y - trans.b.y)) * 5) + e.x + (trans.b.x - root.b.x)
   if e.state > 0 then
     if nvoices < MAX_NUM_VOICES then
       --engine.start(id, getHz(x, y-1))
@@ -247,8 +245,8 @@ function grid_note_trans_2(e)
       engine.start(e.id, getHzET(note))
       start_screen_note(note)
       lit[e.id] = {}
-      lit[e.id].x = e.x + trans_2.x - root.b.x
-      lit[e.id].y = e.y + trans_2.y - root.b.y
+      lit[e.id].x = e.x + trans.b.x - root.b.x
+      lit[e.id].y = e.y + trans.b.y - root.b.y
       nvoices = nvoices + 1
     end
   else
@@ -266,14 +264,14 @@ function gridredraw()
   g:led(1, 2, 2 + pat1.play * 10)
   g:led(1, 3, 2 + pat2.rec * 10)
   g:led(1, 4, 2 + pat2.play * 10)
-  g:led(1, 7, 2 + mode_transpose_1 * 10)
-  g:led(1, 8, 2 + mode_transpose_1 * 10)
+  g:led(1, 7, 2 + mode_transpose[1] * 10)
+  g:led(1, 8, 2 + mode_transpose[2] * 10)
 
-  if mode_transpose_1 == 1 then
-    g:led(trans_1.x, trans_1.y, 4)
+  if mode_transpose[1] == 1 then
+    g:led(trans.a.x, trans.a.y, 4)
   end
-  if mode_transpose_2 == 1 then
-    g:led(trans_2.x, trans_2.y, 4)
+  if mode_transpose[2] == 1 then
+    g:led(trans.b.x, trans.b.y, 4)
   end
 
   for i, e in pairs(lit) do
